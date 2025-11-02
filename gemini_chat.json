@@ -1,0 +1,43 @@
+{
+  "name": "Gemini Chat (Webhook → Code → Respond)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gemini-chat",
+        "responseMode": "responseNode"
+      },
+      "id": "Webhook1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "language": "JavaScript",
+        "jsCode": "// === CONFIG ===\\nconst API_KEY = 'AIzaSyAqbiIwEIGgDT265vv6_KFsOkgnTgEuNKc';\\nconst MODEL   = 'gemini-2.5-flash';\\n\\n// === INPUT ===\\nconst prompt = $json?.prompt || 'Merhaba!';\\n\\n// === CALL GEMINI ===\\nconst url = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent`;\\n\\nconst body = {\\n  contents: [\\n    { role: 'user', parts: [ { text: prompt } ] }\\n  ]\\n};\\n\\nconst resp = await this.helpers.httpRequest({\\n  method: 'POST',\\n  url,\\n  headers: {\\n    'x-goog-api-key': API_KEY,\\n    'accept': 'application/json'\\n  },\\n  body,\\n  json: true\\n});\\n\\nconst text = resp?.candidates?.[0]?.content?.parts?.[0]?.text\\n          ?? resp?.error?.message\\n          ?? 'Boş yanıt';\\n\\nreturn [{ json: { reply: text, raw: resp } }];"
+      },
+      "id": "Code1",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 300]
+    },
+    {
+      "parameters": {
+        "responseCode": 200,
+        "responseBody": "{{ $json.reply }}"
+      },
+      "id": "Respond1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [ [ { "node": "Code", "type": "main", "index": 0 } ] ] },
+    "Code": { "main": [ [ { "node": "Respond to Webhook", "type": "main", "index": 0 } ] ] }
+  }
+}
